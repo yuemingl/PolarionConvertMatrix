@@ -1,0 +1,106 @@
+// Standard build.gradle for clients projects. Do "gradlew clean fatjar" to build the (fat) jar in the dist folder
+plugins {
+    id 'java-library'
+}
+
+repositories {
+    mavenCentral()
+}
+
+
+configurations {
+    jarLibs
+    nonTransitiveLibs {
+        transitive false
+    }
+}
+
+task fatJar (type: Jar) {
+    doFirst {
+        mkdir "dist"
+    }
+
+    from sourceSets.main.output
+    dependsOn configurations.runtimeClasspath
+    from {
+        configurations.jarLibs { it.name.endsWith('jar') }.collect {
+            zipTree(it).matching {
+                duplicatesStrategy 'warn'
+                exclude 'META-INF/**/*' //Exclude META-INF from other jars
+            }
+        }
+    }
+    from {
+        configurations.nonTransitiveLibs { it.name.endsWith('jar') }.collect {
+            zipTree(it).matching {
+                duplicatesStrategy 'warn'
+                exclude 'META-INF/**/*' //Exclude META-INF from other jars
+            }
+        }
+    }
+
+    doLast {
+        println "Copying "+ baseName + ".jar to dist"
+        copy { // Copy output to dist
+            from "build/libs/" + baseName + ".jar"
+            into "dist"
+        }
+    }
+}
+
+sourceSets {
+    main {
+        java {
+            srcDirs = ['src']
+        }
+    }
+    test {
+        java {
+            srcDirs = ['test']
+        }
+    }
+}
+
+dependencies {
+    jarLibs 'ch.qos.logback:logback-classic:1.1.1'
+    jarLibs 'ch.qos.logback:logback-core:1.1.1'
+    jarLibs 'com.google.code.gson:gson:2.8.5'
+    jarLibs 'commons-codec:commons-codec:1.10'
+    jarLibs 'commons-io:commons-io:2.4'
+    jarLibs 'commons-lang:commons-lang:2.6'
+    jarLibs 'commons-logging:commons-logging:1.2'
+    jarLibs 'javax.servlet:javax.servlet-api:3.1.0'
+    jarLibs 'net.lingala.zip4j:zip4j:1.3.2'
+    jarLibs 'org.apache.commons:commons-lang3:3.1'
+    jarLibs 'org.apache.httpcomponents:fluent-hc:4.5.3'
+    jarLibs 'org.apache.httpcomponents:httpclient-cache:4.5.3'
+    jarLibs 'org.apache.httpcomponents:httpclient-win:4.5.3'
+    jarLibs 'org.apache.httpcomponents:httpclient:4.5.3'
+    jarLibs 'org.apache.httpcomponents:httpcore:4.4.6'
+    jarLibs 'org.apache.httpcomponents:httpmime:4.5.3'
+    jarLibs 'org.jasypt:jasypt:1.9.2'
+    jarLibs 'org.json:json:20211205'
+    jarLibs 'org.jsoup:jsoup:1.14.3'
+    jarLibs 'org.slf4j:slf4j-api:1.7.6'
+    jarLibs 'com.opencsv:opencsv:3.7'
+// https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-core
+    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.15.2'
+// https://mvnrepository.com/artifact/org.codehaus.jackson/jackson-mapper-asl
+    implementation group: 'org.codehaus.jackson', name: 'jackson-mapper-asl', version: '1.9.13'
+
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.mockito:mockito-core:4.0.0'
+    testImplementation 'org.assertj:assertj-core:3.20.2'
+
+    configurations.implementation.extendsFrom(configurations.jarLibs)
+    configurations.implementation.extendsFrom(configurations.nonTransitiveLibs)
+
+}
+
+fatJar {
+    manifest {
+		attributes "Main-Class": "com.matrixreq.polarionxmlconvert.PolarionXmlConvert"
+    }
+    baseName = "PolarionXmlConvert"
+}
+
